@@ -44,17 +44,15 @@ class User(db.Model):
     name = db.Column(db.String)
     password = db.Column(db.String)
     enrolled_subjects = db.Column(db.String)
-    marks = db.Column(db.String)
 
-    def __init__(self,username, name, password, enrolled_subjects, marks):
+    def __init__(self,username, name, password, enrolled_subjects):
         self.username= username
         self.name= name
         self.password=password
         self.enrolled_subjects=enrolled_subjects
-        self.marks = marks # Initialize new user marks as empty string
     
     def representation(self):
-        return list([self.username, self.name, self.password, self.enrolled_subjects, self.marks])
+        return list([self.username, self.name, self.password, self.enrolled_subjects])
 
 
 ############
@@ -83,9 +81,9 @@ try:
         data_df = pd.read_csv('user.csv')
         for index,row in data_df.iterrows():
             if( pd.isna( row['enrolled_subjects'] )):
-                new_user = User(row['username'],row['name'], row['password'], "", "")
+                new_user = User(row['username'],row['name'], row['password'], "")
             else:
-                new_user = User(row['username'],row['name'], row['password'], row['enrolled_subjects'], row['marks'])
+                new_user = User(row['username'],row['name'], row['password'], row['enrolled_subjects'])
             db.session.add(new_user)
     db.session.commit()
     print('Populated User table')
@@ -125,7 +123,6 @@ def user_username(username):
     user_dict["name"] = table_result_user[1]
     user_dict["password"] = table_result_user[2]
     user_dict["enrolled_subjects"] = table_result_user[3]
-    user_dict["marks"] = table_result_user[4]
 
 
     return jsonify(user_dict)
@@ -143,9 +140,8 @@ def user_add():
         name=str(request.json['name'])
         password=str(request.json['password'])
         enrolled_subjects=str(request.json['enrolled_subjects'])
-        marks=str(request.json['marks'])
 
-        new_user = User(username, name, password, enrolled_subjects,marks)
+        new_user = User(username, name, password, enrolled_subjects)
 
         db.session.add(new_user)
         db.session.commit()
@@ -184,10 +180,8 @@ def user_enroll():
         user_to_update = user_to_update[0]
         if user_to_update.enrolled_subjects == "":
             user_to_update.enrolled_subjects = course_id
-            user_to_update.marks = "-1"
         else:
             user_to_update.enrolled_subjects = user_to_update.enrolled_subjects + ";" + course_id
-            user_to_update.marks = user_to_update.marks + ";" + "-1"
 
         db.session.commit()
 
@@ -245,16 +239,13 @@ def course_info_enrolled(username):
         return jsonify(temp_dict)
     user_table_result = user_table_result[0].representation()
     user_course_enrolled_list = list(user_table_result[3].split(";"))
-    user_marks_course_enrolled_list = list(user_table_result[4].split(";"))
     print('user course enrolled list ', user_course_enrolled_list)
-
 
 
     course_table_result = Course.query.filter().all()
     course_table_result= [i.representation() for i in course_table_result]
     print("course_table_result ",course_table_result)
 
-    enrolled_course_counter=0
     user_course_enrolled_info_list=[]
     for i in course_table_result:
         if i[0] in user_course_enrolled_list:
@@ -263,13 +254,8 @@ def course_info_enrolled(username):
             temp_dict["course_id"] = i[0]
             temp_dict["course_title"] = i[1]
             temp_dict["course_description"] = i[2] 
-            temp_dict["marks"] = int(user_marks_course_enrolled_list[enrolled_course_counter])
             #user_course_enrolled_info_list.append(json.dumps({"course_id":i[0], "course_title":i[1], "course_description":i[2] }))
             user_course_enrolled_info_list.append(temp_dict)
-
-            enrolled_course_counter = enrolled_course_counter + 1
-
-
 
     print("user_course_enrolled_info_list  ",user_course_enrolled_info_list)
 
@@ -375,55 +361,39 @@ def course_info_recommend(username):
 #################
 
 
-@app.route('/user/marks_add', methods=["POST"])
-def user_marks_add():
-    try:
-        print("SERVING POST '/user/marks_add'")
-        username=str(request.json['username'])
-        course_id=str(request.json['course_id'])
-        marks = str(request.json['marks'])
+@app.route('/search/<query>', methods=["GET"])
+def course_info_not_enrolled(query):
 
-        user_to_update=User.query.filter(User.username == username).all()
+    print("SERVING GET '/search/<query>'")
+    username=str(username)
 
-        if len(user_to_update) == 0:
-            temp_dict=dict()
-            temp_dict["status"]=400
-            return jsonify(temp_dict)
-            #return Response(json.dumps("That Username does not exist. Please provide existing username"),status=400)
-        
-        user_to_update = user_to_update[0]
-        
-        current_user_subjects = user_to_update.enrolled_subjects.split(";")
-        print('current_user_subjects ',current_user_subjects)
-        current_user_marks = user_to_update.marks.split(";")
-        print('current_user_marks ',current_user_marks)
-
-        if course_id not in current_user_subjects:
-            temp_dict=dict()
-            temp_dict["status"]=400
-            return jsonify(temp_dict)  
-
-        index = current_user_subjects.index(course_id)
-        print('index ',index)
-
-        current_user_marks[index] = marks
-
-        new_user_marks = ";".join(current_user_marks)
-        print("new_user_marks ",new_user_marks)
-
-        user_to_update.marks = new_user_marks
-
-        db.session.commit()
-
-        temp_dict=dict()
-        temp_dict["status"]=200
-        return jsonify(temp_dict)
-        #return Response(json.dumps("Successfully enrolled new Subject to User"),status=200)
-    except:
+    user_table_result = User.query.filter(User.username == username).all()
+    if len(user_table_result) == 0 :
         temp_dict=dict()
         temp_dict["status"]=400
+        #return Response(json.dumps("Username Not Present. Please enter valid Username !"),status=400)
         return jsonify(temp_dict)
-        #return Response(json.dumps("Error in SERVING POST '/user/enroll' "),status=400)
+    user_table_result = user_table_result[0].representation()
+    user_course_enrolled_list = list(user_table_result[3].split(";"))
+    print('user course enrolled list ', user_course_enrolled_list)
 
 
+    course_table_result = Course.query.filter().all()
+    course_table_result= [i.representation() for i in course_table_result]
+    print("course_table_result ",course_table_result)
+
+    user_course_not_enrolled_info_list=[]
+    for i in course_table_result:
+        if i[0] not in user_course_enrolled_list:
+            #print('i is ',i)
+            temp_dict=dict()
+            temp_dict["course_id"] = i[0]
+            temp_dict["course_title"] = i[1]
+            temp_dict["course_description"] = i[2] 
+            #user_course_not_enrolled_info_list.append(json.dumps({"course_id":i[0], "course_title":i[1], "course_description":i[2] }))
+            user_course_not_enrolled_info_list.append(temp_dict)
+    print("user_course_not_enrolled_info_list  ",user_course_not_enrolled_info_list)
+
+    #return Response(jsonify(results=user_course_not_enrolled_info_list),status=200)
+    return jsonify(user_course_not_enrolled_info_list)
 

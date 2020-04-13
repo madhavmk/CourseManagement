@@ -1,4 +1,4 @@
-username,name,password,enrolled_subjects
-PES1201700227,Madhav Kashyap,qwerty@321,UE17CS01;UE17CS02;UE17CS03
-PES1201700014,Rithvik Chandan,qwerty@321,UE17CS10
-PES1201700170,Anirudh Maiya,qwerty@321,
+username,name,password,enrolled_subjects,marks
+PES1201700227,Madhav Kashyap,qwerty@321,UE17CS01;UE17CS02;UE17CS03,-1;-1;-1
+PES1201700014,Rithvik Chandan,qwerty@321,UE17CS10,-1
+PES1201700170,Anirudh Maiya,qwerty@321,,
