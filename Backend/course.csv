@@ -1,21 +1,16 @@
 course_id,course_title,course_description
-UE17CS01,Computers_1,bla bla bla bla 1
-UE17CS02,Computers_2,bla bla bla bla 2
-UE17CS03,Computers_3,bla bla bla bla 3
-UE17CS04,Computers_4,bla bla bla bla 4
-UE17CS05,Computers_5,bla bla bla bla 5
-UE17CS06,Computers_6,bla bla bla bla 6
-UE17CS07,Computers_7,bla bla bla bla 7
-UE17CS08,Computers_8,bla bla bla bla 8
-UE17CS09,Computers_9,bla bla bla bla 9
-UE17CS10,Computers_10,bla bla bla bla 10
-UE17CS11,Computers_11,bla bla bla bla 11
-UE17CS12,Computers_12,bla bla bla bla 12
-UE17CS13,Computers_13,bla bla bla bla 13
-UE17CS14,Computers_14,bla bla bla bla 14
-UE17CS15,Computers_15,bla bla bla bla 15
-UE17CS16,Computers_16,bla bla bla bla 16
-UE17CS17,Computers_17,bla bla bla bla 17
-UE17CS18,Computers_18,bla bla bla bla 18
-UE17CS19,Computers_19,bla bla bla bla 19
-UE17CS20,Computers_20,bla bla bla bla 20
+UE17CS01,data structures,computer sem3 data structures algorithm c
+UE17CS02,introduction to data science,computer sem3 introduction to data science r python
+UE17CS03,web technology 1,computer sem3 web technology 1 html css javascript
+UE17ME04,fluid dynamics,mechanical sem3 mechanical fluid dynamics calculus
+UE17CS05,design and analytics of algorithms,computer sem4 data structures algorithm design analytics c
+UE17CS06,introduction to operating systems,computer sem5 operating system linux windows c
+UE17CS07,computer networks,computer sem5 introduction to computer network tcp ip
+UE17CS08,data analytics,computer sem5 data analytics science r python 
+UE17CS09,advanced algorithms,computer sem5 advanced algorithm data structures c c++
+UE17ME10,thermodynamics,mechanical sem5 thermodynamics calculus heat
+UE17CS11,network security,computer sem6 advanced network security
+UE17CS12,heteregenous computing,computer sem6 advanced operating system linux windows parallel threadsc
+UE17CS13,parallel computing,computer sem6 advanced operating system linux windows parallel threads c
+UE17CS14,web technology 2,computer sem6 advanced web technology 2 html css javascript php react angular
+UE17ME15,properties of solid materials,mechanical sem6 properties solid materials calculus

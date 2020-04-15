@@ -8,6 +8,11 @@ import csv
 import pandas as pd
 import json
 
+import gensim.models.keyedvectors as word2vec
+import gensim.downloader as api
+from gensim.parsing.preprocessing import remove_stopwords
+import numpy as np
+
 
 ##############
 
@@ -19,6 +24,11 @@ CORS(app)
 app.debug = True
 print('Connected to DB !!')
 
+
+############
+global wv
+wv = word2vec.KeyedVectors.load_word2vec_format('GoogleNews-vectors-negative300.bin', binary=True)
+print('Loaded Word2Vec !!')
 
 ############
 
@@ -334,10 +344,94 @@ def course_info_recommend(username):
     user_course_enrolled_list = list(user_table_result[3].split(";"))
     #print('user course enrolled list ', user_course_enrolled_list)
 
-
     course_table_result = Course.query.filter().all()
     course_table_result= [i.representation() for i in course_table_result]
     #print("course_table_result ",course_table_result)
+
+    enrolled_table_result=[]
+    for i in course_table_result:
+        if i[0] in user_course_enrolled_list:
+            enrolled_table_result.append(i)
+    print("enrolled_table_result ",enrolled_table_result)
+
+    not_enrolled_table_result=[]
+    for i in course_table_result:
+        if i[0] not in user_course_enrolled_list:
+            not_enrolled_table_result.append(i)
+    print("not_enrolled_table_result ",not_enrolled_table_result)
+
+    #wv = api.load('word2vec-google-news-300')
+    #wv = word2vec.KeyedVectors.load_word2vec_format('GoogleNews-vectors-negative300.bin', binary=True)
+    #course_names=[i[0] for i in not_enrolled_table_result]
+    #course_words=[i[2] for i in not_enrolled_table_result] 
+
+    course_names_enrolled=[i[0] for i in enrolled_table_result]
+    course_words_enrolled=[i[2] for i in enrolled_table_result]
+    course_names_not_enrolled=[i[0] for i in not_enrolled_table_result]
+    course_words_not_enrolled=[i[2] for i in not_enrolled_table_result]
+
+
+
+    course_vals = {}    
+
+    def vector(x):
+        len_is = 0
+        sum_is = 0
+        for word in x:
+            if word in wv.vocab:
+                sum_is = sum_is + wv[word]
+                len_is = len_is + 1
+        return sum_is / len_is
+
+    def cos(x,y):
+        return np.dot(x, y)/(np.linalg.norm(x)* np.linalg.norm(y))
+
+    for i in range(len(course_names_enrolled)):
+        get_vector = vector(course_words_enrolled[i])
+        course_vals[course_names_enrolled[i]] = get_vector
+    for i in range(len(course_names_not_enrolled)):
+        get_vector = vector(course_words_not_enrolled[i])
+        course_vals[course_names_not_enrolled[i]] = get_vector
+
+    course_not_enrolled_max_dist = []
+    for i in range(len(course_names_not_enrolled)):
+        max_value=-1
+        max_value_index=-1
+        for j in range(len(course_names_enrolled)):
+            get_sim = cos(course_vals[course_names_not_enrolled[i]],course_vals[course_names_enrolled[j]])
+            if get_sim>max_value:
+                max_value=get_sim
+                max_value_index=j
+            print(course_names_not_enrolled[i],' || ',course_names_enrolled[j] ,' = ',get_sim)
+        print("MAX  !! ",course_names_not_enrolled[i],' || ',course_names_enrolled[max_value_index] ,' = ',max_value)
+        course_not_enrolled_max_dist.append([course_names_not_enrolled[i],course_names_enrolled[max_value_index],max_value])
+
+    def sortCustom(val): 
+        return val[2] 
+    course_not_enrolled_max_dist = sorted(course_not_enrolled_max_dist, key = sortCustom, reverse=True)
+
+    print('sorted subjects  ',course_not_enrolled_max_dist)
+
+    def findIndex(course_table_result, course_id):
+        course_table_result_course_id = [i[0] for i in course_table_result]
+        index = course_table_result_course_id.index(course_id)
+        return index
+
+    search_course=[]
+    for i in course_not_enrolled_max_dist:
+        index_course = findIndex(course_table_result, i[0])
+        index_related_course = findIndex(course_table_result, i[1])
+        temp_dict=dict()
+        temp_dict["course_id"] = course_table_result[index_course][0]
+        temp_dict["course_title"] = course_table_result[index_course][1]
+        temp_dict["course_description"] = course_table_result[index_course][2] 
+        temp_dict["related_course_title"] = course_table_result[index_related_course][2]
+        search_course.append(temp_dict)
+
+    return jsonify(search_course)
+    
+
+    """
 
     user_course_not_enrolled_info_list=[]
     for i in course_table_result:
@@ -349,29 +443,13 @@ def course_info_recommend(username):
             temp_dict["course_description"] = i[2] 
             #user_course_not_enrolled_info_list.append(json.dumps({"course_id":i[0], "course_title":i[1], "course_description":i[2] }))
             user_course_not_enrolled_info_list.append(temp_dict)
-
-
-    print("user_course_not_enrolled_info_list  ",user_course_not_enrolled_info_list)
-
-
-    user_course_enrolled_info_list=[]
-    for i in course_table_result:
-        if i[0] in user_course_enrolled_list:
-            #print('i is ',i)
-            temp_dict=dict()
-            temp_dict["course_id"] = i[0]
-            temp_dict["course_title"] = i[1]
-            temp_dict["course_description"] = i[2] 
-            #user_course_enrolled_info_list.append(json.dumps({"course_id":i[0], "course_title":i[1], "course_description":i[2] }))
-            user_course_enrolled_info_list.append(temp_dict)
-    print("user_course_enrolled_info_list  ",user_course_enrolled_info_list)
+    
 
     # # # # Add Recommender logic using user course 'enrolled' and 'not enrolled' information
-
-    #return Response(user_course_not_enrolled_info_list,status=200)
     return jsonify(user_course_not_enrolled_info_list)
-
-
+    """
+    
+    
 #################
 
 
@@ -427,3 +505,94 @@ def user_marks_add():
 
 
 
+################
+
+
+@app.route('/course/info/search/<username>/<phrase>', methods=["GET"])
+def course_info_search(username,phrase):
+
+    print("SERVING GET '/course/info/search/<username>/<phrase>'")
+    username=str(username)
+    phrase=str(phrase)
+
+    user_table_result = User.query.filter(User.username == username).all()
+    if len(user_table_result) == 0 :
+        temp_dict=dict()
+        temp_dict["status"]=400
+        return jsonify(temp_dict)
+    user_table_result = user_table_result[0].representation()
+    user_course_enrolled_list = list(user_table_result[3].split(";"))
+
+    course_table_result = Course.query.filter().all()
+    course_table_result= [i.representation() for i in course_table_result]
+
+    not_enrolled_table_result=[]
+    for i in course_table_result:
+        if i[0] not in user_course_enrolled_list:
+            not_enrolled_table_result.append(i)
+    print("not_enrolled_table_result ",not_enrolled_table_result)
+
+    course_names_not_enrolled=[i[0] for i in not_enrolled_table_result]
+    course_words_not_enrolled=[i[1] for i in not_enrolled_table_result]#####
+    print('course_words_not_enrolled ',course_words_not_enrolled)
+
+    course_vals = {}    
+
+    def vector(x):
+        len_is = 0
+        sum_is = 0
+        for word in x:
+            if word in wv.vocab:
+                sum_is = sum_is + wv[word]
+                len_is = len_is + 1
+        return sum_is / len_is
+
+    def cos(x,y):
+        return np.dot(x, y)/(np.linalg.norm(x)* np.linalg.norm(y))
+
+    for i in range(len(course_names_not_enrolled)):
+        get_vector = vector(course_words_not_enrolled[i])
+        course_vals[course_names_not_enrolled[i]] = get_vector
+
+    course_vals[phrase] = vector(phrase)
+
+    course_not_enrolled_max_dist = []
+    for i in range(len(course_names_not_enrolled)):
+        
+        get_sim = cos(course_vals[course_names_not_enrolled[i]],course_vals[phrase])
+        print(course_names_not_enrolled[i],' || ',phrase ,' = ',get_sim)
+        course_not_enrolled_max_dist.append([course_names_not_enrolled[i],phrase,get_sim])
+
+        """
+        course_not_enrolled_max_dist.append()
+        for j in range(len(course_names_enrolled)):
+            get_sim = cos(course_vals[course_names_not_enrolled[i]],course_vals[course_names_enrolled[j]])
+            if get_sim>max_value:
+                max_value=get_sim
+                max_value_index=j
+            print(course_names_not_enrolled[i],' || ',course_names_enrolled[j] ,' = ',get_sim)
+        print("MAX  !! ",course_names_not_enrolled[i],' || ',course_names_enrolled[max_value_index] ,' = ',max_value)
+        course_not_enrolled_max_dist.append([course_names_not_enrolled[i],course_names_enrolled[max_value_index],max_value])
+        """
+
+    def sortCustom(val): 
+        return val[2] 
+    course_not_enrolled_max_dist = sorted(course_not_enrolled_max_dist, key = sortCustom, reverse=True)
+
+    print('sorted subjects  ',course_not_enrolled_max_dist)
+
+    def findIndex(course_table_result, course_id):
+        course_table_result_course_id = [i[0] for i in course_table_result]
+        index = course_table_result_course_id.index(course_id)
+        return index
+
+    search_course=[]
+    for i in course_not_enrolled_max_dist:
+        index_course = findIndex(course_table_result, i[0])
+        temp_dict=dict()
+        temp_dict["course_id"] = course_table_result[index_course][0]
+        temp_dict["course_title"] = course_table_result[index_course][1]
+        temp_dict["course_description"] = course_table_result[index_course][2] 
+        search_course.append(temp_dict)
+
+    return jsonify(search_course)

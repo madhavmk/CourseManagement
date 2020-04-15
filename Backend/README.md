@@ -23,6 +23,11 @@ drop table "course";\
 drop table "user";\
 Initialize contents of "user.csv" and "course.csv".\
 
+## Word2Vec model
+Download the 1.7 gb model from:
+https://s3.amazonaws.com/dl4j-distribution/GoogleNews-vectors-negative300.bin.gz
+Unzip the file and place the "GoogleNews-vectors-negative300.bin" file into the "/Backend" directory
+
 ## Start Server
 cd Backend\
 sudo python3 waitress_server.py\
